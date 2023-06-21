@@ -1,0 +1,545 @@
+#===============================================================================
+#Packages that I used
+#===============================================================================
+import warnings
+warnings.filterwarnings('always')
+warnings.filterwarnings('ignore')
+
+import sklearn.metrics as metrics
+import itertools
+
+
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+
+#!pip install keras==2.2.4                                       #Instaling
+#!pip install tensorflow                                    #the packges to work
+import keras
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Model
+from tensorflow.keras.optimizers import Nadam, Adam                  #I changed
+from tensorflow.keras.utils import to_categorical                    #I changed
+from tensorflow.keras.applications.vgg16 import VGG16                #I changed
+from tensorflow.keras.applications.vgg19 import VGG19
+from tensorflow.keras.applications.densenet import DenseNet121
+from keras.layers import Dropout, Flatten, Input, Dense
+from keras.layers import Conv2D, MaxPooling2D, BatchNormalization
+
+import random
+import tensorflow as tf
+import cv2 as cv
+import os
+import glob
+
+#===============================================================================
+from google.colab import drive
+drive.mount("/content/drive", force_remount=True)
+#===============================================================================
+#Importing data base (Icons)
+#===============================================================================
+
+boca_de_sapo = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/boca_de_sapo/', '*'))
+bora = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/bora/', '*'))
+bugia = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/bugia/', '*'))
+irai = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/irai/', '*'))
+japura = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/japura/', '*'))
+jatai = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/jatai/', '*'))
+lambe_olhos =glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/lambe_olhos/', '*'))
+mandaguari = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/mandaguari/', '*'))     
+mirim_droryana = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/mirim_droryana/', '*'))                     
+mirim_preguica = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/mirim_preguica/', '*'))
+moca_branca = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/moca_branca/', '*'))
+mandacaia =glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/mandacaia/', '*'))
+tubuna = glob.glob(os.path.join('/content/drive/My Drive/Colab Notebooks/TrabalhoAbe/tubuna/', '*'))
+
+
+X_path = (boca_de_sapo + bora + bugia + irai +  japura + jatai + lambe_olhos + moca_branca + mandaguari + mirim_droryana + mirim_preguica + mandacaia +tubuna)
+
+X = []
+
+for f in X_path:
+    X.append(np.array(cv.resize(cv.imread(f), (224,224),
+                                interpolation = cv.INTER_AREA)))
+
+X = np.array(X)
+X = X / 255
+
+
+l_boca_de_sapo = np.zeros(len(boca_de_sapo))
+l_boca_de_sapo_string = ['boca_de_sapo' for i in range(len(boca_de_sapo))]
+
+l_bora = np.ones(len(bora))
+l_bora_string = ['bora' for i in range(len(bora))]
+
+l_bugia = 2*np.ones(len(bugia))
+l_bugia_string = ['bugia' for i in range(len(bugia))]
+
+l_irai = 3*np.ones(len(irai))
+l_irai_string = ['irai' for i in range(len(irai))]
+
+l_japura = 4*np.ones(len(japura))
+l_japura_string = ['japura' for i in range(len(japura))]
+
+l_jatai = 5*np.ones(len(jatai))
+l_jatai_string = ['jatai' for i in range(len(jatai))]
+
+l_lambe_olhos = 6*np.ones(len(lambe_olhos))
+l_lambe_olhos_string = ['lambe_olhos' for i in range(len(lambe_olhos))]
+
+l_mandaguari = 7*np.ones(len(mandaguari))
+l_mandaguari_string = ['mandaguari' for i in range(len(mandaguari))]
+
+
+l_mirim_droryana = 8*np.ones(len(mirim_droryana))
+l_mirim_droryana_string = ['mirim_droryana' for i in range(len(mirim_droryana))]
+
+l_mirim_preguica = 9*np.ones(len(mirim_preguica))
+l_mirim_preguica_string = ['mirim_preguica' for i in range(len(mirim_preguica))]
+
+l_moca_branca = 10*np.ones(len(moca_branca))
+l_moca_branca_string = ['moca_branca' for i in range(len(moca_branca))]
+
+l_mandacaia = 11*np.ones(len(mandacaia))
+l_mandacaia_string = ['mandacaia' for i in range(len(mandacaia))]
+
+
+l_tubuna = 12*np.ones(len(tubuna))
+l_tubuna_string = ['tubuna' for i in range(len(tubuna))]
+
+#===============================================================================
+#Concatenating...
+y_string = np.concatenate((l_boca_de_sapo_string, l_bora_string,
+                           l_bugia_string, l_irai_string,
+                           l_japura_string, l_jatai_string, l_lambe_olhos_string,
+                           l_mandaguari_string, l_mirim_droryana_string,
+                           l_mirim_preguica_string, l_moca_branca_string, l_mandacaia_string,l_tubuna_string))
+
+y = np.concatenate((l_boca_de_sapo, l_bora, l_bugia, l_irai,
+                    l_japura, l_jatai, l_lambe_olhos, l_mandaguari, l_mirim_droryana,
+                    l_mirim_preguica, l_moca_branca, l_mandacaia, l_tubuna))
+
+y = to_categorical(y,13)
+
+#=========================================================================
+fig,ax=plt.subplots(2,2)
+fig.set_size_inches(15,15)
+for i in range(2):
+    for j in range (2):
+        r = random.randint(0,len(y_string))
+        ax[i,j].imshow(X[r][:,:,::-1])
+        ax[i,j].set_title('Espécie: ' + y_string[r])
+
+plt.tight_layout()
+
+listStyles_Of_Icons = []
+
+for i in range(len(y_string)):
+    found = False
+    for j in range(len(listStyles_Of_Icons)):
+        if y_string[i] == listStyles_Of_Icons[j]:
+            found = True
+            break
+    if found == False:
+        listStyles_Of_Icons.append(y_string[i])
+
+Quantity_Icons = []
+
+for i in range(len(listStyles_Of_Icons)):
+    Quantity_Icons.append(0)
+    for j in range(len(y_string)):
+        if y_string[j] == listStyles_Of_Icons[i]:
+            Quantity_Icons[i] += 1
+
+Icons_data_Set = {'Espécies': listStyles_Of_Icons,
+                 'Quantidade': Quantity_Icons
+                 }
+
+df = pd.DataFrame(Icons_data_Set, columns=['Espécies', 'Quantidade'])
+
+print(df)
+
+g = sns.barplot(x="Espécies", y="Quantidade", data=df)
+
+g.set_xticklabels(g.get_xticklabels(), rotation=45)
+
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size = 0.3, random_state=42,stratify=y)
+
+
+
+vgg = VGG19(input_shape=(224,224,3), include_top = False, weights= 'imagenet')
+
+x = vgg.output
+x = Flatten()(x)
+x = Dense(3078,activation='relu')(x)
+x = Dropout(0.5)(x)
+x = Dense(256,activation='relu')(x)
+x = Dropout(0.2)(x)
+out = Dense(13,activation='softmax')(x)
+
+tf_model=Model(inputs=vgg.input,outputs=out)
+
+#Block trains of CC
+for layer in tf_model.layers[:20]:
+    layer.trainable=False
+
+tf_model.compile(optimizer = Nadam(0.0001) , loss = 'categorical_crossentropy',
+                 metrics=["accuracy"])
+
+history = tf_model.fit(X_train, y_train, batch_size = 2, epochs = 50, initial_epoch = 0, validation_data = (X_val, y_val))
+
+_, val_acc = tf_model.evaluate(X_val, y_val, verbose=1)
+
+def plot_confusion_matrix(cm,
+                          target_names,
+                          title='Matriz de Confusão',
+                          cmap=None,
+                          normalize=True):
+
+    accuracy = np.trace(cm) / float(np.sum(cm))
+    misclass = 1 - accuracy
+
+    if cmap is None:
+        cmap = plt.get_cmap('Blues')
+
+    plt.figure(figsize=(8, 6))
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+
+    if target_names is not None:
+        tick_marks = np.arange(len(target_names))
+        plt.xticks(tick_marks, target_names, rotation=45)
+        plt.yticks(tick_marks, target_names)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+
+    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        if normalize:
+            plt.text(j, i, "{:0.4f}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+        else:
+            plt.text(j, i, "{:,}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+
+
+    plt.tight_layout()
+    plt.ylabel('Espécie verdadeira')
+    plt.xlabel('Espécie predita\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    plt.show()
+
+
+pred = tf_model.predict(X_val)
+pred = np.argmax(pred, axis=1)
+pred = pd.DataFrame(pred).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+y_val_string = np.argmax(y_val, axis=1)
+y_val_string = pd.DataFrame(y_val_string).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+confusion_matrix = metrics.confusion_matrix(y_true=pred, y_pred=y_val_string, labels=['boca_de_sapo', 'bora', 'bugia', 'irai', 'japura', 'jatai', 'lambe_olhos', 'moca_branca','mandaguari', 'mirim_droryana',  'mirim_preguica','mandacaia', 'tubuna'])
+
+
+plot_confusion_matrix(confusion_matrix,
+                      normalize    = False,
+                      target_names = ['boca_de_sapo', 'bora', 'bugia', 'irai', 'japura', 'jatai', 'lambe_olhos', 'moca_branca','mandaguari', 'mirim_droryana',  'mirim_preguica','mandacaia', 'tubuna'],
+                      title        = "Matriz de Confusão")
+
+tf_model.summary()
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Erro do Modelo')
+plt.ylabel('Erro')
+plt.xlabel('Épocas')
+plt.legend(['Treino', 'Teste'])
+plt.show()
+
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Acurácia do Modelo')
+plt.ylabel('Acurácia')
+plt.xlabel('Épocas')
+plt.legend(['Treino', 'Teste'])
+plt.show()
+
+pred = tf_model.predict(X_val)
+pred = np.argmax(pred, axis = 1)
+pred = pd.DataFrame(pred).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+y_val_string = np.argmax(y_val, axis = 1)
+y_val_string = pd.DataFrame(y_val_string).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+mis_class = []
+for i in range(len(y_val_string)):
+    if(not y_val_string[0][i] == pred[0][i]):
+        mis_class.append(i)
+    if(len(mis_class)==8):
+        break
+
+count = 0
+fig,ax = plt.subplots(3,2)
+fig.set_size_inches(15,15)
+for i in range (3):
+    for j in range (2):
+        ax[i,j].imshow(X_val[mis_class[count]][:,:,::-1])
+        ax[i,j].set_title("Espécie predita: "+str(pred[0][mis_class[count]])+"\n"+"Espécie real: " + str(y_val_string[0][mis_class[count]]))
+        plt.tight_layout()
+        count+=1
+
+
+
+densenet = DenseNet121(input_shape=(224,224,3), include_top = False, weights= 'imagenet')
+
+x = densenet.output
+x = Flatten()(x)
+x = Dense(3078,activation='relu')(x)
+x = Dropout(0.5)(x)
+x = Dense(256,activation='relu')(x)
+x = Dropout(0.2)(x)
+out = Dense(13,activation='softmax')(x)
+
+tf_model=Model(inputs=densenet.input,outputs=out)
+
+#Block trains of CC
+for layer in densenet.layers:
+    layer.trainable = False
+
+tf_model.compile(optimizer = Nadam(0.0001) , loss = 'categorical_crossentropy',
+                 metrics=["accuracy"])
+
+history = tf_model.fit(X_train, y_train, batch_size = 2, epochs = 50,
+                       initial_epoch = 0, validation_data = (X_val, y_val))
+
+_, val_acc = tf_model.evaluate(X_val, y_val, verbose=1)
+
+def plot_confusion_matrix(cm,
+                          target_names,
+                          title='Matriz de Confusão',
+                          cmap=None,
+                          normalize=True):
+
+    accuracy = np.trace(cm) / float(np.sum(cm))
+    misclass = 1 - accuracy
+
+    if cmap is None:
+        cmap = plt.get_cmap('Blues')
+
+    plt.figure(figsize=(8, 6))
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+
+    if target_names is not None:
+        tick_marks = np.arange(len(target_names))
+        plt.xticks(tick_marks, target_names, rotation=45)
+        plt.yticks(tick_marks, target_names)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+
+    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        if normalize:
+            plt.text(j, i, "{:0.4f}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+        else:
+            plt.text(j, i, "{:,}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+
+
+    plt.tight_layout()
+    plt.ylabel('Espécie verdadeira')
+    plt.xlabel('Espécie predita\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    plt.show()
+
+pred = tf_model.predict(X_val)
+pred = np.argmax(pred, axis=1)
+pred = pd.DataFrame(pred).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+y_val_string = np.argmax(y_val, axis=1)
+y_val_string = pd.DataFrame(y_val_string).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+confusion_matrix = metrics.confusion_matrix(y_true=pred, y_pred=y_val_string, labels=['boca_de_sapo', 'bora', 'bugia', 'irai', 'japura', 'jatai', 'lambe_olhos', 'moca_branca','mandaguari', 'mirim_droryana',  'mirim_preguica','mandacaia', 'tubuna'])
+
+plot_confusion_matrix(confusion_matrix,
+                      normalize    = False,
+                      target_names = ['boca_de_sapo', 'bora', 'bugia', 'irai', 'japura', 'jatai', 'lambe_olhos', 'moca_branca','mandaguari', 'mirim_droryana',  'mirim_preguica','mandacaia', 'tubuna'],
+                      title        = "Matriz de Confusão")
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Erro do Modelo')
+plt.ylabel('Erro')
+plt.xlabel('Épocas')
+plt.legend(['Treino', 'Teste'])
+plt.show()
+
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Acurácia do Modelo')
+plt.ylabel('Acurácia')
+plt.xlabel('Épocas')
+plt.legend(['Treino', 'Teste'])
+plt.show()
+
+mis_class = []
+for i in range(len(y_val_string)):
+    if(not y_val_string[0][i] == pred[0][i]):
+        mis_class.append(i)
+    if(len(mis_class)==8):
+        break
+count = 0
+fig,ax = plt.subplots(3,2)
+fig.set_size_inches(15,15)
+for i in range (3):
+    for j in range (2):
+        ax[i,j].imshow(X_val[mis_class[count]][:,:,::-1])
+        ax[i,j].set_title("Espécie predita: "+str(pred[0][mis_class[count]])+"\n"+"Espécie real: " + str(y_val_string[0][mis_class[count]]))
+        plt.tight_layout()
+        count+=1
+
+vgg = VGG16(input_shape=(224,224,3), include_top = False, weights= 'imagenet')
+
+x = vgg.output
+x = Flatten()(x)
+x = Dense(3078,activation='relu')(x)
+x = Dropout(0.5)(x)
+x = Dense(256,activation='relu')(x)
+x = Dropout(0.2)(x)
+out = Dense(13,activation='softmax')(x)
+
+tf_model=Model(inputs=vgg.input,outputs=out)
+
+#Block trains of CC
+for layer in tf_model.layers[:20]:
+    layer.trainable=False
+
+tf_model.compile(optimizer = Nadam(0.0001) , loss = 'categorical_crossentropy',
+                 metrics=["accuracy"])
+
+history = tf_model.fit(X_train, y_train, batch_size = 2, epochs = 50, initial_epoch = 0, validation_data = (X_val, y_val))
+
+_, val_acc = tf_model.evaluate(X_val, y_val, verbose=1)
+
+def plot_confusion_matrix(cm,
+                          target_names,
+                          title='Matriz de Confusão',
+                          cmap=None,
+                          normalize=True):
+
+    accuracy = np.trace(cm) / float(np.sum(cm))
+    misclass = 1 - accuracy
+
+    if cmap is None:
+        cmap = plt.get_cmap('Blues')
+
+    plt.figure(figsize=(8, 6))
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+
+    if target_names is not None:
+        tick_marks = np.arange(len(target_names))
+        plt.xticks(tick_marks, target_names, rotation=45)
+        plt.yticks(tick_marks, target_names)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+
+    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        if normalize:
+            plt.text(j, i, "{:0.4f}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+        else:
+            plt.text(j, i, "{:,}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+
+
+    plt.tight_layout()
+    plt.ylabel('Espécie verdadeira')
+    plt.xlabel('Espécie predita\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    plt.show()
+
+
+pred = tf_model.predict(X_val)
+pred = np.argmax(pred, axis=1)
+pred = pd.DataFrame(pred).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+y_val_string = np.argmax(y_val, axis=1)
+y_val_string = pd.DataFrame(y_val_string).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+confusion_matrix = metrics.confusion_matrix(y_true=pred, y_pred=y_val_string, labels=['boca_de_sapo', 'bora', 'bugia', 'irai', 'japura', 'jatai', 'lambe_olhos', 'moca_branca','mandaguari', 'mirim_droryana',  'mirim_preguica','mandacaia', 'tubuna'])
+
+
+plot_confusion_matrix(confusion_matrix,
+                      normalize    = False,
+                      target_names = ['boca_de_sapo', 'bora', 'bugia', 'irai', 'japura', 'jatai', 'lambe_olhos', 'moca_branca','mandaguari', 'mirim_droryana',  'mirim_preguica','mandacaia', 'tubuna'],
+                      title        = "Matriz de Confusão")
+
+tf_model.summary()
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Erro do Modelo')
+plt.ylabel('Erro')
+plt.xlabel('Épocas')
+plt.legend(['Treino', 'Teste'])
+plt.show()
+
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Acurácia do Modelo')
+plt.ylabel('Acurácia')
+plt.xlabel('Épocas')
+plt.legend(['Treino', 'Teste'])
+plt.show()
+
+pred = tf_model.predict(X_val)
+pred = np.argmax(pred, axis = 1)
+pred = pd.DataFrame(pred).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+y_val_string = np.argmax(y_val, axis = 1)
+y_val_string = pd.DataFrame(y_val_string).replace({0: 'boca_de_sapo', 1: 'bora',2: 'bugia', 3: 'irai', 4: 'japura', 5: 'jatai', 6: 'lambe_olhos', 7: 'moca_branca',8: 'mandaguari', 9: 'mirim_droryana', 10: 'mirim_preguica',
+                                   11: 'mandacaia', 12: 'tubuna'})
+
+mis_class = []
+for i in range(len(y_val_string)):
+    if(not y_val_string[0][i] == pred[0][i]):
+        mis_class.append(i)
+    if(len(mis_class)==8):
+        break
+
+count = 0
+fig,ax = plt.subplots(3,2)
+fig.set_size_inches(15,15)
+for i in range (3):
+    for j in range (2):
+        ax[i,j].imshow(X_val[mis_class[count]][:,:,::-1])
+        ax[i,j].set_title("Espécie predita: "+str(pred[0][mis_class[count]])+"\n"+"Espécie real: " + str(y_val_string[0][mis_class[count]]))
+        plt.tight_layout()
+        count+=1
